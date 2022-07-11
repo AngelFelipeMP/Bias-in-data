@@ -1,5 +1,6 @@
 import os
 import spacy
+from sklearn.feature_extraction.text import CountVectorizer
 
 CODE_PATH = os.getcwd()
 REPO_PATH = '/'.join(CODE_PATH.split('/')[0:-1])
@@ -22,3 +23,10 @@ with open(DATA_PATH + '/' + folderdata + '/' + filename, 'r') as file:
             #Write to file "Processed"
             newfile.write(join)
 
+
+vectorizer = CountVectorizer(decode_error='ignore',strip_accents='unicode',ngram_range=(1,3))
+with open(DATA_PATH + '/' + folderdata + '/' + fileprocessed, 'r') as corpus:
+    vectors = vectorizer.fit_transform(corpus)
+        
+#vectorizer.get_feature_names_out()
+print(vectorizer.get_feature_names_out().shape)
