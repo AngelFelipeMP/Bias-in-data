@@ -1,52 +1,75 @@
 from config import *
 from collections import Counter
 import spacy
+from spacy.lookups import load_lookups
 import pandas as pd
 from math import e
+import unidecode
+
+
+def wi_fuc(folder, data_list, text_column, top_num=20):
+    # Load Spacy Spanish model
+    nlp = spacy.load('es_core_news_sm')
+    # Add/load Spacy lookup tables for scores
+    lookups = load_lookups("es", ["lexeme_prob"])
+    nlp.vocab.lookups.add_table("lexeme_prob", lookups.get_table("lexeme_prob"))
+
+    print('\n#############' + folder + '#############')
+    for dataset in data_list:
+        
+        # Load data
+        sep = '\t' if '.tsv' in dataset else ','
+        df = pd.read_csv(DATA_PATH + '/' + folder + '/' + dataset, sep=sep)
+        df = df.loc[df['language']=='es'].copy() if 'language' in df.columns else df.copy()
+        
+        # pre-processing
+        df['text_processed'] = df[text_column].apply(lambda text: [token.text.lower() for token in nlp(text) if token.is_alpha
+                                                                                                                and len(token.lemma_)>2])
+        
+        # Caculate weirdness index
+        print('\nData: ' + dataset)
+        
+        # create a list of all the words in the text + remove accents
+        corpora = [unidecode.unidecode(token) for token_list in df['text_processed'].values.tolist() for token in token_list]
+        word_counts = Counter(corpora)
+        total_words = sum(word_counts.values())
+        unique_words = list(set(word_counts))
+        square_weirdness = [(item, pow(word_counts[item]/total_words, 2) / e**nlp.vocab[item].prob, pow(word_counts[item]/total_words, 2), e**nlp.vocab[item].prob) for item in unique_words]
+        
+        #Save weirdness index ".csv"
+        df_top = pd.DataFrame(sorted(square_weirdness, reverse=True, key=lambda x: x[1]), columns=['word', 'wi', 'prob_' + folder, 'prob_corpus'])
+        
+        print(df_top.head(top_num))
+        data_type = 'test' if 'test' in dataset else 'train' if 'train' in dataset else 'dev'
+        df_top.to_csv(PATH_RESULTS_BIAS + '/' + 'wi_score_' + folder.lower() + '_' + data_type + '.csv', index = False)
+        
+
 
 if __name__ == "__main__":
     
+    # DETOXIS weirdness index
     folder_detoxis = 'DETOXIS'
     file_detoxis_test = 'DETOXIS2021_test_with_labels.csv'
     file_detoxis_train = 'DETOXIS2021_train.csv'
     text_column_detoxis = 'comment'
     
-    def wi_fuc(folder, data_list, text_column, top_num=20):
-        # Load Spacy Spanish model
-        nlp = spacy.load('es_core_news_sm')
-    
-        print('\n#############' + folder + '#############')
-        for dataset in data_list:
-            
-            sep = '\t' if '.tsv' in dataset else ','
-            df = pd.read_csv(DATA_PATH + '/' + folder + '/' + dataset, sep=sep)
-            df = df.loc[df['language']=='es'].copy() if 'language' in df.columns else df.copy()
-            
-            # pre-processing
-            df['text_processed'] = df[text_column].apply(lambda text: [token.lemma_.lower() for token in nlp(text) if not token.is_stop 
-                                                                                                                    and token.is_alpha
-                                                                                                                    and len(token.lemma_)>2])
-            
-            
-            print('Dataset: ' + dataset)
-            # print(df.head())
-            
-            corpora = [token for token_list in df['text_processed'].values.tolist() for token in token_list]
-            word_counts = Counter(corpora)
-            total_words = sum(word_counts.values())
-            # word_prob = [(item[0], word_counts[item[0]] / total_words) for item in word_counts.items()]
-            unique_words = list(set(word_counts))
-            
-            square_weirdness = [(item, pow(word_counts[item]/total_words, 2) / e**nlp.vocab[item].prob) for item in unique_words]
-    
-            
-            print([item[0] for item in sorted(square_weirdness, reverse=True, key=lambda x: x[1])][:15])
-    
-    
     wi_fuc(folder_detoxis, [file_detoxis_test, file_detoxis_train], text_column_detoxis)
-            
-            
-            
-            
+    
+    
+    # EXIST weirdness index
+    folder_exist = 'EXIST'
+    file_exist_test = 'EXIST2021_test_with_labeled.tsv'
+    file_exist_train = 'EXIST2021_training.tsv'
+    text_column_exist = 'text'
+    
+    wi_fuc(folder_exist, [file_exist_test, file_exist_train], text_column_exist)
+    
+    
+    # HatEval weirdness index
+    folder_hateval = 'HatEval'
+    file_hateval_test = 'hateval2019_es_test.csv'
+    file_hateval_train = 'hateval2019_es_train.csv'
+    file_hateval_dev = 'hateval2019_es_dev.csv'
+    text_column_hateval = 'text'
 
-# square_weirdness = [(item, pow(word_counts[item]/total_words, 2) / e**nlp.vocab[item].prob) for item in unique_words]
+    wi_fuc(folder_hateval, [file_hateval_test, file_hateval_train, file_hateval_dev], text_column_hateval)
