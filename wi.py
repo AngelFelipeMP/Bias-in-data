@@ -48,28 +48,12 @@ def wi_fuc(folder, data_list, text_column, top_num=20):
 if __name__ == "__main__":
     
     # DETOXIS weirdness index
-    folder_detoxis = 'DETOXIS'
-    file_detoxis_test = 'DETOXIS2021_test_with_labels.csv'
-    file_detoxis_train = 'DETOXIS2021_train.csv'
-    text_column_detoxis = 'comment'
-    
     wi_fuc(folder_detoxis, [file_detoxis_test, file_detoxis_train], text_column_detoxis)
     
     
     # EXIST weirdness index
-    folder_exist = 'EXIST'
-    file_exist_test = 'EXIST2021_test_with_labeled.tsv'
-    file_exist_train = 'EXIST2021_training.tsv'
-    text_column_exist = 'text'
-    
     wi_fuc(folder_exist, [file_exist_test, file_exist_train], text_column_exist)
     
     
     # HatEval weirdness index
-    folder_hateval = 'HatEval'
-    file_hateval_test = 'hateval2019_es_test.csv'
-    file_hateval_train = 'hateval2019_es_train.csv'
-    file_hateval_dev = 'hateval2019_es_dev.csv'
-    text_column_hateval = 'text'
-
     wi_fuc(folder_hateval, [file_hateval_test, file_hateval_train, file_hateval_dev], text_column_hateval)
